@@ -10,6 +10,57 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+model Eventos {
+  id              Int               @id @default(autoincrement())
+  nome            String
+  dataHora        DateTime
+  descricao       String
+  local           String
+  preco_base      Float
+  ArtistasEventos ArtistasEventos[]
+  Ingressos       Ingressos[]
+
+  @@map("eventos")
+}
+
+model Artistas {
+  id              Int               @id @default(autoincrement())
+  nome            String
+  genero          String
+  ArtistasEventos ArtistasEventos[]
+
+  @@map("artistas")
+}
+
+model ArtistasEventos {
+  artistaId Int
+  eventoId  Int
+
+  artista Artistas @relation(fields: [artistaId], references: [id])
+  evento  Eventos  @relation(fields: [eventoId], references: [id])
+
+  @@id([artistaId, eventoId])
+  @@map("artistas_eventos")
+}
+
+model Ingressos {
+  id         Int          @id @default(autoincrement())
+  eventoId   Int
+  tipo       TipoIngresso
+  preco      Float
+  quantidade Int
+
+  evento Eventos @relation(fields: [eventoId], references: [id])
+
+  @@map("ingressos")
+}
+
+enum TipoIngresso {
+  VIP
+  COMUM
+  MEIA
 }
