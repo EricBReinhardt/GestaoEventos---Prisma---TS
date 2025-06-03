@@ -1,0 +1,1 @@
+# GestaoEventos---Prisma---TS
