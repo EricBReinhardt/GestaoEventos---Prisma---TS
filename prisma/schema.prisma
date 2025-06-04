@@ -17,7 +17,7 @@ model Eventos {
   id              Int               @id @default(autoincrement())
   nome            String
   dataHora        DateTime
-  descricao       String
+  descricao       String            @default("")
   local           String
   preco_base      Float
   ArtistasEventos ArtistasEventos[]

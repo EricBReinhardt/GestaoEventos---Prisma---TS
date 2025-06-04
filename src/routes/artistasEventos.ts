@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -11,9 +11,9 @@ const artistaEventoSchema = z.object({
 });
 
 // Listar todas as associações artista-evento
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
-        const artistasEventos = await prisma.artistaEvento.findMany({
+        const artistasEventos = await prisma.artistasEventos.findMany({
             include: {
                 artista: true,
                 evento: true,
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 // Criar nova associação artista-evento
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
     try {
         const parsedData = artistaEventoSchema.safeParse(req.body);
         if (!parsedData.success) {
@@ -40,8 +40,8 @@ router.post('/', async (req, res) => {
         
         // Verificar se artista e evento existem
         const [artista, evento] = await Promise.all([
-            prisma.artista.findUnique({ where: { id: artistaId } }),
-            prisma.evento.findUnique({ where: { id: eventoId } }),
+            prisma.artistas.findUnique({ where: { id: artistaId } }),
+            prisma.eventos.findUnique({ where: { id: eventoId } }),
         ]);
 
         if (!artista || !evento) {
@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const artistaEvento = await prisma.artistaEvento.create({
+        const artistaEvento = await prisma.artistasEventos.create({
             data: { artistaId, eventoId },
             include: {
                 artista: true,
@@ -65,7 +65,7 @@ router.post('/', async (req, res) => {
 });
 
 // Remover associação artista-evento
-router.delete('/:artistaId/:eventoId', async (req, res) => {
+router.delete('/:artistaId/:eventoId', async (req: Request, res: Response) => {
     const artistaId = parseInt(req.params.artistaId);
     const eventoId = parseInt(req.params.eventoId);
 
@@ -74,7 +74,7 @@ router.delete('/:artistaId/:eventoId', async (req, res) => {
     }
 
     try {
-        const artistaEvento = await prisma.artistaEvento.findUnique({
+        const artistaEvento = await prisma.artistasEventos.findUnique({
             where: {
                 artistaId_eventoId: {
                     artistaId,
@@ -87,7 +87,7 @@ router.delete('/:artistaId/:eventoId', async (req, res) => {
             return res.status(404).json({ error: 'Associação não encontrada' });
         }
 
-        await prisma.artistaEvento.delete({
+        await prisma.artistasEventos.delete({
             where: {
                 artistaId_eventoId: {
                     artistaId,

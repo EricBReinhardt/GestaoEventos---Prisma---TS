@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -7,21 +7,22 @@ const router = Router();
 
 const eventoSchema = z.object({
     nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
-    data: z.string().datetime('Data deve ser um datetime válido'),
+    dataHora: z.string().datetime('Data deve ser um datetime válido'),
     local: z.string().min(3, 'Local deve ter pelo menos 3 caracteres'),
-    capacidade: z.number().int().positive('Capacidade deve ser um número positivo'),
+    preco_base: z.number().positive('Preço base deve ser um número positivo'),
+    descricao: z.string().optional() 
 });
 
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
-        const eventos = await prisma.evento.findMany({
+        const eventos = await prisma.eventos.findMany({
             include: {
-                artistas: {
+                ArtistasEventos: {
                     include: {
                         artista: true,
                     },
                 },
-                ingressos: true,
+                Ingressos: true,
             },
         });
         res.json(eventos);
@@ -31,7 +32,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
     try {
         const parsedData = eventoSchema.safeParse(req.body);
         if (!parsedData.success) {
@@ -40,15 +41,18 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const { nome, data, local, capacidade } = parsedData.data;
-        const evento = await prisma.evento.create({
-            data: { 
-                nome, 
-                data: new Date(data), 
-                local, 
-                capacidade 
-            },
+        const { nome, dataHora, local, preco_base, descricao } = parsedData.data;
+        
+        const evento = await prisma.eventos.create({
+            data: {
+                nome,
+                dataHora: new Date(dataHora),
+                local,
+                preco_base,
+                descricao: descricao || '' // Fornece string vazia se undefined
+            }
         });
+        
         res.status(201).json(evento);
     } catch (error) {
         console.error(error);
@@ -56,14 +60,14 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
         return res.status(400).json({ error: 'ID inválido' });
     }
 
     try {
-        const eventoExistente = await prisma.evento.findUnique({ where: { id } });
+        const eventoExistente = await prisma.eventos.findUnique({ where: { id } });
         if (!eventoExistente) {
             return res.status(404).json({ error: 'Evento não encontrado' });
         }
@@ -75,14 +79,15 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        const { nome, data, local, capacidade } = parsedData.data;
-        const evento = await prisma.evento.update({
+        const { nome, dataHora, local, preco_base, descricao } = parsedData.data;
+        const evento = await prisma.eventos.update({
             where: { id },
             data: { 
                 nome, 
-                data: new Date(data), 
+                dataHora: new Date(dataHora), 
                 local, 
-                capacidade 
+                preco_base,
+                descricao
             },
         });
         res.json(evento);
@@ -92,20 +97,19 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// Deletar evento
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
         return res.status(400).json({ error: 'ID inválido' });
     }
 
     try {
-        const eventoExistente = await prisma.evento.findUnique({ where: { id } });
+        const eventoExistente = await prisma.eventos.findUnique({ where: { id } });
         if (!eventoExistente) {
             return res.status(404).json({ error: 'Evento não encontrado' });
         }
 
-        await prisma.evento.delete({ where: { id } });
+        await prisma.eventos.delete({ where: { id } });
         res.status(204).send();
     } catch (error) {
         console.error(error);

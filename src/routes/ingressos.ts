@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -7,15 +7,14 @@ const router = Router();
 
 const ingressoSchema = z.object({
     eventoId: z.number().int().positive('ID do evento deve ser positivo'),
-    tipo: z.string().min(3, 'Tipo deve ter pelo menos 3 caracteres'),
+    tipo: z.enum(['VIP', 'COMUM', 'MEIA']),
     preco: z.number().positive('Preço deve ser um número positivo'),
     quantidade: z.number().int().positive('Quantidade deve ser um número positivo'),
 });
 
-// Listar todos os ingressos
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
-        const ingressos = await prisma.ingresso.findMany({
+        const ingressos = await prisma.ingressos.findMany({
             include: {
                 evento: true,
             },
@@ -27,8 +26,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Criar novo ingresso
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
     try {
         const parsedData = ingressoSchema.safeParse(req.body);
         if (!parsedData.success) {
@@ -39,15 +37,14 @@ router.post('/', async (req, res) => {
 
         const { eventoId, tipo, preco, quantidade } = parsedData.data;
         
-        // Verificar se o evento existe
-        const evento = await prisma.evento.findUnique({ 
+        const evento = await prisma.eventos.findUnique({ 
             where: { id: eventoId } 
         });
         if (!evento) {
             return res.status(404).json({ error: 'Evento não encontrado' });
         }
 
-        const ingresso = await prisma.ingresso.create({
+        const ingresso = await prisma.ingressos.create({
             data: { eventoId, tipo, preco, quantidade },
             include: {
                 evento: true,
@@ -60,15 +57,14 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Atualizar ingresso
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
         return res.status(400).json({ error: 'ID inválido' });
     }
 
     try {
-        const ingressoExistente = await prisma.ingresso.findUnique({ 
+        const ingressoExistente = await prisma.ingressos.findUnique({ 
             where: { id },
             include: {
                 evento: true,
@@ -87,9 +83,8 @@ router.put('/:id', async (req, res) => {
 
         const { eventoId, tipo, preco, quantidade } = parsedData.data;
         
-        // Verificar se o novo evento existe (se mudou)
         if (eventoId !== ingressoExistente.eventoId) {
-            const evento = await prisma.evento.findUnique({ 
+            const evento = await prisma.eventos.findUnique({ 
                 where: { id: eventoId } 
             });
             if (!evento) {
@@ -97,7 +92,7 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        const ingresso = await prisma.ingresso.update({
+        const ingresso = await prisma.ingressos.update({
             where: { id },
             data: { eventoId, tipo, preco, quantidade },
             include: {
@@ -111,20 +106,19 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// Deletar ingresso
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
         return res.status(400).json({ error: 'ID inválido' });
     }
 
     try {
-        const ingressoExistente = await prisma.ingresso.findUnique({ where: { id } });
+        const ingressoExistente = await prisma.ingressos.findUnique({ where: { id } });
         if (!ingressoExistente) {
             return res.status(404).json({ error: 'Ingresso não encontrado' });
         }
 
-        await prisma.ingresso.delete({ where: { id } });
+        await prisma.ingressos.delete({ where: { id } });
         res.status(204).send();
     } catch (error) {
         console.error(error);
