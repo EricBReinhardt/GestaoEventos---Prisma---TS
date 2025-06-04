@@ -49,7 +49,7 @@ router.post('/', async (req: Request, res: Response) => {
                 dataHora: new Date(dataHora),
                 local,
                 preco_base,
-                descricao: descricao || '' // Fornece string vazia se undefined
+                descricao: descricao || '' 
             }
         });
         
